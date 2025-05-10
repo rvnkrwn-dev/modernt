@@ -59,129 +59,131 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: Color(0xFFF9F9F9),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Image.asset("assets/images/logo-light.png"),
-                  SizedBox(height: 32),
-                  Text(
-                    "Sign in to your Account",
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    "Enter your email and password to log in",
-                    style: TextStyle(color: Color(0xFF6C7278)),
-                  ),
-                  SizedBox(height: 32),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Email"),
-                      Container(
-                        height: 46,
-                        decoration: BoxDecoration(
-                          color: Color(0xFFFFFFFF),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Color(0xFFEDF1F3)),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Image.asset("assets/images/logo-light.png"),
+                    SizedBox(height: 32),
+                    Text(
+                      "Sign in to your Account",
+                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      "Enter your email and password to log in",
+                      style: TextStyle(color: Color(0xFF6C7278)),
+                    ),
+                    SizedBox(height: 32),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Email"),
+                        Container(
+                          height: 46,
+                          decoration: BoxDecoration(
+                            color: Color(0xFFFFFFFF),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Color(0xFFEDF1F3)),
+                          ),
+                          padding: EdgeInsets.all(12),
+                          child: TextField(
+                            controller: _emailController,
+                            decoration: InputDecoration(
+                              hintText: "your@email.com",
+                              border: InputBorder.none,
+                            ),
+                          ),
                         ),
-                        padding: EdgeInsets.all(12),
-                        child: TextField(
-                          controller: _emailController,
-                          decoration: InputDecoration(
-                            hintText: "your@email.com",
-                            border: InputBorder.none,
+                      ],
+                    ),
+                    SizedBox(height: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Password"),
+                        Container(
+                          height: 46,
+                          decoration: BoxDecoration(
+                            color: Color(0xFFFFFFFF),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Color(0xFFEDF1F3)),
+                          ),
+                          padding: EdgeInsets.all(12),
+                          child: TextField(
+                            controller: _passwordController,
+                            obscureText: true,
+                            decoration: InputDecoration(
+                              hintText: "********",
+                              border: InputBorder.none,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: GestureDetector(
+                        onTap: () => {
+                          if (mounted) {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => ForgetScreen()))
+                          }
+                        },
+                        child: Text(
+                          "Forget password ?",
+                          style: TextStyle(color: Color(0xFF4D81E7)),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 32),
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : _login, // Disable button while loading
+                      style: ButtonStyle(
+                        minimumSize: MaterialStateProperty.all(Size(350, 48)),
+                        shadowColor: MaterialStateProperty.all(Colors.transparent),
+                        backgroundColor: MaterialStateProperty.all(
+                          Color(0xFFB981FF),
+                        ),
+                        shape: MaterialStateProperty.all(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                  SizedBox(height: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Password"),
-                      Container(
-                        height: 46,
-                        decoration: BoxDecoration(
-                          color: Color(0xFFFFFFFF),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Color(0xFFEDF1F3)),
-                        ),
-                        padding: EdgeInsets.all(12),
-                        child: TextField(
-                          controller: _passwordController,
-                          obscureText: true,
-                          decoration: InputDecoration(
-                            hintText: "********",
-                            border: InputBorder.none,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: GestureDetector(
+                      child: _isLoading
+                          ? CircularProgressIndicator(color: Colors.white) // Show loading spinner
+                          : Text("Login", style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text("Don't have an account?"),
+                    SizedBox(width: 8),
+                    GestureDetector(
                       onTap: () => {
                         if (mounted) {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => ForgetScreen()))
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => RegisterScreen()))
                         }
                       },
                       child: Text(
-                        "Forget password ?",
-                        style: TextStyle(color: Color(0xFF4D81E7)),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 32),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _login, // Disable button while loading
-                    style: ButtonStyle(
-                      minimumSize: MaterialStateProperty.all(Size(350, 48)),
-                      shadowColor: MaterialStateProperty.all(Colors.transparent),
-                      backgroundColor: MaterialStateProperty.all(
-                        Color(0xFFB981FF),
-                      ),
-                      shape: MaterialStateProperty.all(
-                        RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                        "Sign Up",
+                        style: TextStyle(
+                          color: Color(0xFF4D81E7),
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-                    child: _isLoading
-                        ? CircularProgressIndicator(color: Colors.white) // Show loading spinner
-                        : Text("Login", style: TextStyle(color: Colors.white)),
-                  ),
-                ],
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text("Don't have an account?"),
-                  SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () => {
-                      if (mounted) {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => RegisterScreen()))
-                      }
-                    },
-                    child: Text(
-                      "Sign Up",
-                      style: TextStyle(
-                        color: Color(0xFF4D81E7),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

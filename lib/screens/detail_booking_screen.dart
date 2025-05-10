@@ -5,15 +5,16 @@ import 'package:moderent/services/vehicle_service.dart';
 import 'package:moderent/widgets/car_card.dart';
 import 'package:moderent/widgets/custom_back_appbar.dart';
 import 'package:moderent/screens/detail_screen.dart';
+import 'package:moderent/services/bank_transfer_service.dart';
 
 class DetailBookingScreen extends StatefulWidget {
   final int vehicleId;
-  final int delivery_location;
+  final int deliveryLocation;
 
   const DetailBookingScreen({
     super.key,
     required this.vehicleId,
-    required this.delivery_location,
+    required this.deliveryLocation,
   });
 
   @override
@@ -26,15 +27,18 @@ class _DetailBookingScreenState extends State<DetailBookingScreen> {
   final TextEditingController _endDateController = TextEditingController();
 
   String selectedBank = 'BCA';
-  List<String> bankList = ['BCA', 'BNI', 'Mandiri', 'BRI'];
-
+  List<String> bankList = [];
   Map<String, dynamic>? vehicleData;
   bool isLoading = true;
+
+  int rentalPeriod = 0;
+  int totalPrice = 0;
 
   @override
   void initState() {
     super.initState();
     fetchVehicle();
+    fetchBankTransfers();
   }
 
   Future<void> fetchVehicle() async {
@@ -51,6 +55,69 @@ class _DetailBookingScreenState extends State<DetailBookingScreen> {
       setState(() {
         isLoading = false;
       });
+    }
+  }
+
+  Future<void> fetchBankTransfers() async {
+    try {
+      final result = await BankTransferService().getBankTransfers();
+      if (result != null && result['success']) {
+        setState(() {
+          bankList = List<String>.from(
+            result['bankTransfers']
+                .map<String>((bank) => bank['name_bank'] as String)
+                .toSet(),
+          );
+        });
+      } else {
+        print('Error: ${result?['message']}');
+      }
+    } catch (e) {
+      print('Error fetching bank transfers: $e');
+    }
+  }
+
+  void _updatePriceAndPeriod() {
+    if (_startDateController.text.isNotEmpty &&
+        _endDateController.text.isNotEmpty) {
+      try {
+        final startParts = _startDateController.text.split('/');
+        final endParts = _endDateController.text.split('/');
+
+        final startDate = DateTime(
+          int.parse(startParts[2]),
+          int.parse(startParts[1]),
+          int.parse(startParts[0]),
+        );
+        final endDate = DateTime(
+          int.parse(endParts[2]),
+          int.parse(endParts[1]),
+          int.parse(endParts[0]),
+        );
+
+        if (endDate.isBefore(startDate)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("End date must be later or equal to start date"),
+            ),
+          );
+          return;
+        }
+
+        // Jika end date sama dengan start date, tetap hitung 1 hari
+        final int days =
+            endDate.difference(startDate).inDays == 0
+                ? 1
+                : endDate.difference(startDate).inDays;
+
+        final pricePerDay = vehicleData?['rental_price'] ?? 0;
+        setState(() {
+          rentalPeriod = days;
+          totalPrice = (days * pricePerDay).toInt();
+        });
+      } catch (e) {
+        print('Invalid date format: $e');
+      }
     }
   }
 
@@ -82,7 +149,7 @@ class _DetailBookingScreenState extends State<DetailBookingScreen> {
                               MaterialPageRoute(
                                 builder:
                                     (context) => DetailScreen(
-                                      vehicleId: vehicleData?['id'] ?? 0,
+                                      vehicleId: vehicleData?['id'],
                                     ),
                               ),
                             );
@@ -131,6 +198,7 @@ class _DetailBookingScreenState extends State<DetailBookingScreen> {
         if (pickedDate != null) {
           controller.text =
               "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
+          _updatePriceAndPeriod(); // update when date changes
         }
       },
       child: AbsorbPointer(
@@ -158,20 +226,28 @@ class _DetailBookingScreenState extends State<DetailBookingScreen> {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.grey.shade300),
       ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: selectedBank,
-          items:
-              bankList.map((bank) {
-                return DropdownMenuItem(value: bank, child: Text(bank));
-              }).toList(),
-          onChanged: (value) {
-            setState(() {
-              selectedBank = value!;
-            });
-          },
-        ),
-      ),
+      child:
+          bankList.isEmpty
+              ? const Text("No banks available")
+              : bankList.length == 1
+              ? Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Text(bankList[0]),
+              )
+              : DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: bankList.contains(selectedBank) ? selectedBank : null,
+                  items:
+                      bankList.map((bank) {
+                        return DropdownMenuItem(value: bank, child: Text(bank));
+                      }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedBank = value!;
+                    });
+                  },
+                ),
+              ),
     );
   }
 
@@ -192,16 +268,23 @@ class _DetailBookingScreenState extends State<DetailBookingScreen> {
   }
 
   Widget _buildTotalPrice() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Total price :",
-          style: TextStyle(fontWeight: FontWeight.w500),
-        ),
-        Text(
-          formatToIdr(vehicleData?['rental_price'] ?? 0),
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        Text("Rental Period: $rentalPeriod days"),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              "Total price:",
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+            Text(
+              formatToIdr(totalPrice),
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
       ],
     );
@@ -211,18 +294,17 @@ class _DetailBookingScreenState extends State<DetailBookingScreen> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        style: ButtonStyle(
-          minimumSize: const WidgetStatePropertyAll(Size(350, 48)),
-          shadowColor: const WidgetStatePropertyAll(Colors.transparent),
-          backgroundColor: const WidgetStatePropertyAll(Color(0xFFB981FF)),
-          shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFB981FF),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
           ),
+          padding: const EdgeInsets.symmetric(vertical: 16),
         ),
         onPressed: _handleContinue,
         child: const Text(
           "Continue to Payment",
-          style: TextStyle(fontSize: 16, color: Colors.white),
+          style: TextStyle(color: Colors.white),
         ),
       ),
     );
@@ -237,43 +319,51 @@ class _DetailBookingScreenState extends State<DetailBookingScreen> {
     }
 
     try {
-      // Format tanggal ke ISO (karena kamu minta ISO format di createBooking)
-      final startDateParts = _startDateController.text.split('/');
-      final endDateParts = _endDateController.text.split('/');
+      final startParts = _startDateController.text.split('/');
+      final endParts = _endDateController.text.split('/');
 
       final startDate =
           DateTime(
-            int.parse(startDateParts[2]),
-            int.parse(startDateParts[1]),
-            int.parse(startDateParts[0]),
+            int.parse(startParts[2]),
+            int.parse(startParts[1]),
+            int.parse(startParts[0]),
           ).toUtc().toIso8601String();
 
       final endDate =
           DateTime(
-            int.parse(endDateParts[2]),
-            int.parse(endDateParts[1]),
-            int.parse(endDateParts[0]),
+            int.parse(endParts[2]),
+            int.parse(endParts[1]),
+            int.parse(endParts[0]),
           ).toUtc().toIso8601String();
 
-      // Sementara, anggap bank_transfer_id = 1 (karena kamu cuma pilih nama bank aja di UI)
-      int bankTransferId = 1; // kamu bisa nanti mapping sesuai bank
+      int bankTransferId = 1;
 
       final result = await BookService().createBooking(
         vehicleId: widget.vehicleId,
-        deliveryLocationId: widget.delivery_location,
+        deliveryLocationId: widget.deliveryLocation,
         bankTransferId: bankTransferId,
         startDate: startDate,
         endDate: endDate,
         notes: _noteController.text,
       );
 
-      if (result != null && result['success'] == true) {
+      print(result);
+
+      if (result != null && result['success']) {
         if (mounted) {
           Navigator.push(
             context,
             MaterialPageRoute(
               builder:
-                  (context) => BookingSummaryScreen(),
+                  (context) => BookingSummaryScreen(
+                    bookingId: result['booking']['booking_id'],
+                    vehicleName: result['booking']['vehicle_name'],
+                    dateRange: result['booking']['date_range'],
+                    rentalPeriod: result['booking']['rental_period'],
+                    totalPrice: result['booking']['total_price'],
+                    nameBank: result['booking']['name_bank'],
+                    number: result['booking']['number'],
+                  ),
             ),
           );
         }
@@ -292,6 +382,6 @@ class _DetailBookingScreenState extends State<DetailBookingScreen> {
   }
 
   String formatToIdr(int number) {
-    return "Rp ${number.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => "${m[1]}.")}";
+    return "Rp ${number.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}";
   }
 }

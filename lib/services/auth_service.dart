@@ -71,14 +71,14 @@ class AuthService {
       } else {
         return {
           'success': false,
-          'message': 'Login failed: ${data['message']}',
+          'message': 'Login failed: ${data['message']['error']}',
         };
       }
     } on DioException catch (e) {
       if (e.response != null) {
         return {
           'success': false,
-          'message': 'Login failed: ${e.response?.data}',
+          'message': 'Login failed: ${e.response?.data['error']}',
         };
       } else {
         return {'success': false, 'message': 'Network error: ${e.message}'};

@@ -1,15 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Import untuk clipboard
 import 'package:moderent/screens/upload_payment_proof_screen.dart';
 import 'package:moderent/widgets/custom_back_appbar.dart';
 
-class BookingSummaryScreen extends StatefulWidget {
-  const BookingSummaryScreen({super.key});
+class BookingSummaryScreen extends StatelessWidget {
+  final int bookingId;
+  final String vehicleName;
+  final String dateRange;
+  final int rentalPeriod;
+  final int totalPrice;
+  final String nameBank;
+  final String number;
 
-  @override
-  State<BookingSummaryScreen> createState() => _BookingSummaryScreenState();
-}
+  const BookingSummaryScreen({
+    super.key,
+    required this.bookingId,
+    required this.vehicleName,
+    required this.dateRange,
+    required this.rentalPeriod,
+    required this.totalPrice,
+    required this.nameBank,
+    required this.number,
+  });
 
-class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,7 +38,7 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
                 child: Column(
                   children: [
                     Text(
-                      'Please transfer the total amount to the account\nabove before the deadline.',
+                      'Please transfer the total amount to the account\nbelow before the deadline.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.grey[600],
@@ -51,20 +64,35 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
-                                '08127423282323',
-                                style: TextStyle(
+                              Text(
+                                number,
+                                style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),
                               ),
-                              Icon(Icons.copy_rounded, color: Colors.black54),
+                              GestureDetector(
+                                onTap: () {
+                                  // Menyalin nomor rekening ke clipboard
+                                  Clipboard.setData(ClipboardData(text: number));
+                                  // Menampilkan snackbar setelah menyalin
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text("Account number copied to clipboard!"),
+                                    ),
+                                  );
+                                },
+                                child: const Icon(Icons.copy_rounded, color: Colors.black54),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 16),
-                          Image.network(
-                            'https://th.bing.com/th/id/OIP.bb0jIrc4JmKYsjI2Wx7S_gHaDt?w=500&h=250&rs=1&pid=ImgDetMain', // pastikan logo BCA ada di assets
-                            height: 100,
+                          Text(
+                            nameBank,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 16,
+                            ),
                           ),
                         ],
                       ),
@@ -73,26 +101,24 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-              _buildDetailRow('Vehicle:', 'Innova Cumi Darat FullSpek'),
+              _buildDetailRow('Vehicle:', vehicleName),
               const SizedBox(height: 16),
-              _buildDetailRow('Rental Period:', 'April 27 - April 30, 2025'),
+              _buildDetailRow('Rental Period:', dateRange),
               const SizedBox(height: 16),
-              _buildDetailRow('Total Days:', '3 days'),
+              _buildDetailRow('Total Days:', '$rentalPeriod days'),
               const SizedBox(height: 16),
-              _buildDetailRow('Price per Day:', 'Rp 500.000'),
+              _buildDetailRow('Total Price:', 'Rp ${_formatCurrency(totalPrice)}'),
               const SizedBox(height: 16),
-              _buildDetailRow('Total Price:', 'Rp 1.500.000'),
-              const SizedBox(height: 16),
-              _buildDetailRow('Payment Deadline:', 'April 26, 2025 – 23:59 WIB'),
+              _buildDetailRow('Payment Deadline:', '1 day before start – 23:59 WIB'), // Optional dynamic
               const Spacer(),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Tambahkan aksi konfirmasi pembayaran
-                    if(mounted) {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => UploadPaymentProofScreen() ));
-                    }
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => UploadPaymentProofScreen(bookingId: bookingId)),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFB38DF4),
@@ -133,6 +159,13 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  String _formatCurrency(int amount) {
+    return amount.toString().replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]}.',
     );
   }
 }

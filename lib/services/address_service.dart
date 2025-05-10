@@ -112,4 +112,57 @@ class AddressService {
       }
     }
   }
+
+  Future<Map<String, dynamic>> deleteAddress(int id) async {
+    try {
+      // Get access token from storage
+      final accessToken = await _storage.read(key: 'access_token');
+      if (accessToken == null) {
+        return {'success': false, 'message': 'Access token not found'};
+      }
+
+      // Set Authorization header
+      _dio.options.headers['Authorization'] = 'Bearer $accessToken';
+
+      // Make API call
+      final response = await _dio.delete('/api/address/$id');
+      final data = response.data;
+
+      // Process response
+      if (data['statusCode'] == 200) {
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Address deleted successfully',
+        };
+      } else {
+        return {
+          'success': false,
+          'message':
+              'Failed to delete address: ${data['message'] ?? 'Unknown error'}',
+        };
+      }
+    } on DioException catch (e) {
+      // Handle Dio-specific exceptions
+      String errorMessage = 'Network error';
+
+      if (e.response != null) {
+        final responseData = e.response?.data;
+        errorMessage =
+            responseData is Map
+                ? responseData['message'] ?? 'Server error'
+                : 'Server error: ${e.response?.statusCode}';
+      } else if (e.type == DioExceptionType.connectionTimeout) {
+        errorMessage = 'Connection timeout';
+      } else if (e.type == DioExceptionType.receiveTimeout) {
+        errorMessage = 'Receive timeout';
+      } else {
+        errorMessage = e.message ?? 'Unknown error';
+      }
+
+      return {'success': false, 'message': errorMessage};
+    } catch (e) {
+      // Handle general exceptions
+      return {'success': false, 'message': 'Unexpected error: $e'};
+    }
+  }
 }

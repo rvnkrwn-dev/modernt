@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:moderent/screens/login_screen.dart'; // Impor LoginScreen untuk navigasi
 import 'package:moderent/screens/privacy_and_security.dart';
 import 'package:moderent/screens/setting_profile_screen.dart';
+import 'package:moderent/services/auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,7 +17,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _storage = FlutterSecureStorage();
   String _userName = '';
   String _userEmail = '';
-  String _userProfileImage = 'https://www.sonicboomwellness.com/wp-content/uploads/2020/08/anon-01.png'; // Default image
+  String _userProfileImage =
+      'https://www.sonicboomwellness.com/wp-content/uploads/2020/08/anon-01.png'; // Default image
 
   @override
   void initState() {
@@ -30,25 +32,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (userData != null) {
       Map<String, dynamic> user = jsonDecode(userData);
-      
+
       setState(() {
         _userName = user['username'] ?? 'No Name';
         _userEmail = user['email'] ?? 'No Email';
-        _userProfileImage = user['secure_url_profile'] ?? 'https://www.sonicboomwellness.com/wp-content/uploads/2020/08/anon-01.png';
+        _userProfileImage =
+            user['secure_url_profile'] ??
+            'https://www.sonicboomwellness.com/wp-content/uploads/2020/08/anon-01.png';
       });
     }
-  }
-
-  // Fungsi logout
-  Future<void> _logout() async {
-    await _storage.delete(key: 'access_token');
-    await _storage.delete(key: 'refresh_token');
-    await _storage.delete(key: 'user');
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
-    );
   }
 
   @override
@@ -68,8 +60,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 16),
               Text(
                 _userName,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-                overflow: TextOverflow.ellipsis, // Prevents overflow if text is too long
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow:
+                    TextOverflow
+                        .ellipsis, // Prevents overflow if text is too long
                 maxLines: 1,
               ),
               const SizedBox(height: 8),
@@ -82,7 +79,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 32),
               buildMenuItem('Profile', SettingProfileScreen()),
               buildMenuItem('Privacy & Security', PrivacyAndSecurityScreen()),
-              buildMenuItem('Log out', null, _logout),
+              buildMenuItem('Log out', null, () async {
+                // Call logout when the menu item is tapped
+                await AuthService().logout();
+
+                // You can add navigation or show a message based on the result
+                if (mounted) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => LoginScreen()),
+                  );
+                }
+              }),
             ],
           ),
         ),
@@ -90,7 +98,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget buildMenuItem(String title, Widget? widget, [Function()? onTapAction]) {
+  Widget buildMenuItem(
+    String title,
+    Widget? widget, [
+    Function()? onTapAction,
+  ]) {
     return Column(
       children: [
         ListTile(
@@ -104,7 +116,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onTapAction(); // Menjalankan fungsi logout jika ada
             } else if (widget != null) {
               Navigator.push(
-                context, 
+                context,
                 MaterialPageRoute(builder: (context) => widget),
               );
             }

@@ -121,7 +121,7 @@ class _DeliveryAddressScreenState extends State<DeliveryAddressScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildAddressHeader(address['name'] ?? '', index),
+                _buildAddressHeader(address['name'] ?? '', index, int.parse(address['id'].toString())),
                 const SizedBox(height: 8),
                 Text(address['phone'] ?? ''),
                 const SizedBox(height: 4),
@@ -136,7 +136,7 @@ class _DeliveryAddressScreenState extends State<DeliveryAddressScreen> {
     );
   }
 
-  Widget _buildAddressHeader(String name, int index) {
+  Widget _buildAddressHeader(String name, int index, int id) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -146,7 +146,7 @@ class _DeliveryAddressScreenState extends State<DeliveryAddressScreen> {
         ),
         IconButton(
           icon: const Icon(Icons.remove_circle, color: Colors.red),
-          onPressed: () => _removeAddress(index),
+          onPressed: () => _removeAddress(id, index),
         ),
       ],
     );
@@ -175,11 +175,33 @@ class _DeliveryAddressScreenState extends State<DeliveryAddressScreen> {
     );
   }
 
-  void _removeAddress(int index) {
-    setState(() {
-      addresses.removeAt(index);
-    });
+  void _removeAddress(int id,int index) async {
+  try {
+    // Call the service method and await the response
+    final response = await _addressService.deleteAddress(index);
+    
+    if (response['success']) {
+      setState(() {
+        addresses.removeAt(index);
+      });
+      
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response['message'])),
+      );
+    } else {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response['message']), backgroundColor: Colors.red),
+      );
+    }
+  } catch (e) {
+    // Handle any exceptions
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('An error occurred: $e'), backgroundColor: Colors.red),
+    );
   }
+}
 
   void _updateAddress(int index) {
     // Nanti bisa dibuka screen edit, untuk sekarang contoh dummy:
@@ -190,7 +212,6 @@ class _DeliveryAddressScreenState extends State<DeliveryAddressScreen> {
 
   void _useAddress(int index) {
   final idString = addresses[index]['id']; // ambil dari addresses[index], bukan addresses[1]
-  print(idString);
   if (idString == null) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Address ID not found")),
@@ -205,7 +226,7 @@ class _DeliveryAddressScreenState extends State<DeliveryAddressScreen> {
     MaterialPageRoute(
       builder: (context) => DetailBookingScreen(
         vehicleId: widget.vehicleId,
-        delivery_location: deliveryLocationId,
+        deliveryLocation: deliveryLocationId,
       ),
     ),
   );

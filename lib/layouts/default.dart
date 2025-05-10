@@ -15,10 +15,10 @@ class _DefaultLayoutState extends State<DefaultLayout> {
   int _selectedIndex = 0;
 
   final List<Widget> _screens = [
-    const HomeScreen(),
-    const SearchScreen(),
-    const HistoryScreen(),
-    const ProfileScreen(),
+    HomeScreen(),
+    SearchScreen(),
+    HistoryScreen(),
+    ProfileScreen(),
   ];
 
   void _onItemTapped(int index) {
